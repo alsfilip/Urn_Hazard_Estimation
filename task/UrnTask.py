@@ -1,4 +1,4 @@
-from psychopy import visual, event, core
+from psychopy import visual, event, core, gui
 import numpy as np
 from math import log
 import os, time, random
@@ -23,22 +23,35 @@ The idea is that certainty dynamics (how certainty changes with each observation
 ##################
 ## SUBJECT INFO ##
 ##################
-test = True
+test = False #Set test to true to skip instructions and not make the task full screen
 if test == True:
+    scr = 0
     fs = False
     instr = False
-    subID = 'Alex_TEST'
+    subID = 'TEST'
     cond = 1
     age = 'TEST'
     sex = 'TEST'
 else:
+    # Set full screen to true and use second monitor
     fs = True
+    scr = 1
     
-# TO DO: Make gui to get subject info and add condition
-subID = 'Alex_TEST'
-cond = 1
-age = 'TEST'
-sex = 'TEST'
+    # Creates a dialogue box to get subject info before experiment starts
+    infoBox = gui.Dlg(title = "Participant Information")
+    infoBox.addField("Subject ID: ")
+    infoBox.addField("Condition (1 or 2): ")
+    infoBox.addField("Age: ")
+    infoBox.addField("Sex (M,F,O): ")
+    infoBox.show()
+    if gui.OK:
+        pData = infoBox.data
+        subID = str(pData[0])
+        cond = int(pData[1])
+        age = str(pData[2])
+        sex = str(pData[3])
+    elif gui.CANCEL:
+        core.quit()
 
 #####################
 ## GENERATE TRIALS ##
@@ -53,9 +66,6 @@ random.shuffle(trialBlocks)
 #0 = heads/low, 1 = tails/high
 trialIDs = [0,1]*int(len(trialBlocks)/2)
 random.shuffle(trialIDs)
-
-print(len(trialBlocks))
-print(len(trialIDs))
 
 ######################
 ## TASK ENVIRONMENT ##
@@ -72,7 +82,7 @@ path = os.getcwd()      # Get directory path
 #sy = disp.height
 sx = 1000
 sy = 800
-win = visual.Window(size=(sx,sy),units="pix",fullscr=fs)
+win = visual.Window(size=(sx,sy),units="pix",fullscr=fs,screen = scr)
 
 #Get mouse
 mouse = event.Mouse()
@@ -83,7 +93,7 @@ mouse.setVisible(False)
 cross = visual.TextStim(win,text = "+",height = 40)
 
 #Multipliers for stim
-mult = .06 #multiplier to set coin/person size according to the screen
+mult = .02 #multiplier to set coin/person size according to the screen
 posMult = .3 #multiploer to set position of left/right stimuli
 
 
@@ -93,22 +103,22 @@ leftPos = (-sx*posMult-addObject,0)
 rightPos = (sx*posMult+addObject,0)
 
 #Beads
-blueBead = visual.Circle(win, radius = sy*mult, pos = (0,0),fillColor ="cyan",lineWidth = 5)
-orangeBead = visual.Circle(win, radius = sy*mult, pos = (0,0),fillColor ="orange",lineWidth = 5)
+blueBead = visual.Circle(win, radius = sy*mult,fillColor ="cyan",lineWidth = 2,pos=(0,(sy*.13)))
+orangeBead = visual.Circle(win, radius = sy*mult,fillColor ="orange",lineWidth = 2,pos=(0,(sy*.13)))
 beads = [orangeBead, blueBead]
 
 # Urns
 #Biased Urns
-orangeUrn = visual.ImageStim(win,path+'/OrangeUrn.png', pos = leftPos, size = (sy*.1,sy*.12))
-blueUrn = visual.ImageStim(win,path+'/BlueUrn.png', pos = rightPos, size = (sy*.1,sy*.12))
+orangeUrn = visual.ImageStim(win,path+'//img//OrangeUrn.png', pos = leftPos, size = (sy*.1,sy*.12))
+blueUrn = visual.ImageStim(win,path+'//img//BlueUrn.png', pos = rightPos, size = (sy*.1,sy*.12))
 
 #Full Urns
-orangeFullUrn = visual.ImageStim(win,path+'/OrangeFullUrn.png', pos = leftPos, size = (sy*.1,sy*.12))
-blueFullUrn = visual.ImageStim(win,path+'/BlueFullUrn.png', pos = rightPos, size = (sy*.1,sy*.12))
+orangeFullUrn = visual.ImageStim(win,path+'//img//OrangeFullUrn.png', pos = leftPos, size = (sy*.1,sy*.12))
+blueFullUrn = visual.ImageStim(win,path+'//img//BlueFullUrn.png', pos = rightPos, size = (sy*.1,sy*.12))
 
 # People
-low = visual.ImageStim(win,path+'/LowPerson.png', pos = leftPos, size = (sy*.11,sy*.12))
-high = visual.ImageStim(win,path+'/HighPerson.png', pos = rightPos, size = (sy*.11,sy*.12))
+low = visual.ImageStim(win,path+'//img/LowPerson.png', pos = leftPos, size = (sy*.11,sy*.12))
+high = visual.ImageStim(win,path+'//img/HighPerson.png', pos = rightPos, size = (sy*.11,sy*.12))
 
 #Text for URN or HAZARD phase
 urnPredText = visual.TextStim(win, text="From which container are these beads being drawn?", height = 40, wrapWidth = sx*.8,pos = (0,sy*.25))
@@ -149,13 +159,11 @@ for i in np.arange(len(beadNames)):
         poses.append((0,posY))
     else:
         posX = -(incr*.5)*(i)
-        print(incr)
-        print(posX)
         for j in np.arange(i+1):
             poses.append((posX,posY))
             posX += incr
     posSet.append(poses)
-    beadRem[beadNames[i]] = visual.Circle(win, radius = sy*(mult/3), fillColor='white',pos = (0,0))
+    beadRem[beadNames[i]] = visual.Circle(win, radius = sy*(mult), fillColor='white',pos = (0,0))
 
 
 #####################
@@ -164,8 +172,9 @@ for i in np.arange(len(beadNames)):
 
 # Info to use for data file names
 date_time=time.asctime()        #Date and Time
-dt=date_time.replace('','_')    # Replace spaces with underscores where needed
+dt=date_time.replace(' ','_')    # Replace spaces with underscores where needed
 dt=dt.replace('/','_')      #Replace slashes with underscores where needed
+dt=dt.replace(':','')      #Replace slashes with underscores where needed
 
 # Initialize data file
 datafile = open(path+"//data//%s_CoinTask_%s.csv"%(subID,dt), 'w')
@@ -176,7 +185,8 @@ datafile = open(path+"//data//%s_CoinTask_%s.csv"%(subID,dt), 'w')
 # BlockType: which block is currently being observed (Coin or Hazard)
 # TrialBlock: Which trial block is being seen (1 to however many trial blocks are observed)
 # TrialNumber: Trial number within the current trial block (length 1-5)
-# CurrGen: which coin or hazard rate is generating observations
+# CurrGen: which urn or hazard rate is generating observations
+# Bead: Which bead was observed
 # ItemLeft: option that was on the left for that trial
 # ItemRight: option that was on the right for that trial
 # SideChosen: Side the subject chose (0 for left, 1 for right)
@@ -198,6 +208,12 @@ def recDat(dfile,dat_vec):
 #####################
 ## TRIAL FUNCTIONS ##
 #####################
+
+def getKeypress(df=datafile):
+    keys = event.waitKeys()
+    if keys[0] in ['q','escape']:
+        df.close()
+        core.quit()
 
 #Function before Trial Block to indicate whether this is a Coin Bias or Person Switching Scenario
 def trialBlockType(typeText,win):
@@ -247,9 +263,9 @@ def drawConfLines(clines,ctext_stim,ctext,items,cross,positions,prevBeads,trialN
 
 #Function to launch the prediction screen
 def predict(win,predText,cross,items,itemNames,positions,respPos,subSlider,prevBeads,trial,beadPoses,mouse,bounds):
-    #Half a second blank screen
+    #Short blank screen
     win.flip()
-    core.wait(.5)
+    core.wait(.25)
 
     #Draw stimuli and text to indicate whether they are responding to coins or people
     cTexts = ["Very confident\n%s"%itemNames[0],"Not Sure","Very confident\n%s"%itemNames[1]]
@@ -315,17 +331,15 @@ def urnDraw(bead,cross,win,blkType):
     else: 
         txt = 'Person drawing bead...'
 
-    #Half a second blank screen
+    #Short blank screen
     win.flip()
-    core.wait(.5)
+    core.wait(.25)
     
     # Show text for half a second
     cFlipText = visual.TextStim(win,text = txt,height = 40)
     cFlipText.draw()
     win.flip()
     core.wait(.75)
-    win.flip()
-    core.wait(.25)
     
 #    #Coin on for a second
 #    if bead == 'orange':
@@ -337,8 +351,6 @@ def urnDraw(bead,cross,win,blkType):
 #    core.wait(1)
 
 def genTrials(blkType, freqUrn,rareUrn, ntrials,person = False):
-    print(freqUrn)
-    print(rareUrn)
     if blkType == 'urn':
         trials = np.random.uniform(0,1,ntrials)<.8
         urns = [freqUrn]*ntrials
@@ -413,7 +425,7 @@ def feedback(response,correct,rside,conf,imBuffer,totPoints,fbPositions = [leftP
     return response == correct,points
 
 #Function to run blocks of trials
-def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respPos,predText,beads,trialID,totScore,dfile=datafile):
+def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respPos,predText,beads,trialID,totScore,dfile=datafile,instruct = False):
 
     #Show person that new trial block is starting
     if blkType == 'urn':
@@ -432,16 +444,18 @@ def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respP
         rareUrn = 'blue'
 
     urns,trials = genTrials(blkType,freqUrn,rareUrn,ntrials,person=person)
-    print('Generating Urn')
-    print(itemNames[trialID])
+    print('Generating Urn:'+itemNames[trialID])
+    mouse.setPos((0,0))
     for i in np.arange(len(trials)):
         urnDraw(trials[i],cross,win,blkType)
         start = time.time()
         response,confidence,side,respScreen = predict(win,predText,cross,items,itemNames,positions,respPos,subLine,trials,i+1,posSet,mouse,lbounds)
         print('Response:'+str(response))
-        recDat(dfile,[subInfo[0],subInfo[1],subInfo[2],subInfo[3],blkType,tblock,i+1,itemNames[trialID],trials[i],itemNames[0],itemNames[1],side,response,confidence,'NA','NA',str(time.time()-start)])
+        if instruct == False:
+            recDat(dfile,[subInfo[0],subInfo[1],subInfo[2],subInfo[3],blkType,tblock,i+1,itemNames[trialID],trials[i],itemNames[0],itemNames[1],side,response,confidence,'NA','NA',str(time.time()-start)])
     correct,tScore = feedback(response,itemNames[trialID],side,confidence,respScreen,totScore)
-    recDat(dfile,[subInfo[0],subInfo[1],subInfo[2],subInfo[3],blkType,tblock,i+1,itemNames[trialID],'NA'itemNames[0],itemNames[1],side,response,confidence,int(correct),tScore,'NA'])
+    if instruct == False:
+        recDat(dfile,[subInfo[0],subInfo[1],subInfo[2],subInfo[3],blkType,tblock,i+1,itemNames[trialID],'NA',itemNames[0],itemNames[1],side,response,confidence,int(correct),tScore,'NA'])
     return(tScore)
 
 
@@ -451,81 +465,74 @@ def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respP
 
 def urnInstructions(blueUrn,orangeUrn,beads,leftPos,rightPos):
     # Display instruction text for urn condition
-    txt1 = 'In this task, you will be asked to make predictions about which container beads are being drawn.'
-    txt2 = 'One of the containers has 80% orange beads and 20% blue beads and the other container has 80% blue beads and 20% orange beads'
-    txt3 = 'You are going to see a few trial blocks and each trial block will see between 1 and 5 bead draws.\n\n After each draw we will ask you to rate how confident you are that the beads are being drawn from the mostly orange or mostly blue container.'
-    txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depedning on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points based on your confidence.\n\nAnswering "not sure" will not result in gaining or losing any points.'
-    txtList = [txt1,txt2,txt3,txt4]
+    txt1 = 'In this part of the task, you will see blue and orange beads and be asked to guess from which container the beads are being drawn.'
+    txt2 = 'One of the containers has 80% orange beads and 20% blue beads.\n\nThe other container has 80% blue beads and 20% orange beads'
+    txt3 = 'In each trial block you will see between 1 and 5 beads drawn from one of the two containers.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn from the orange or blue container.'
+    txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
+    txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
+    txtList = [txt1,txt2,txt3,txt4,txt5]
     for i in np.arange(len(txtList)):
         t = txtList[i]+'\n\nPress any key to continue'
-        txtStim = visual.TextStim(win,t,height = 30,wrapWidth = sx*.8)
+        txtStim = visual.TextStim(win,t,height = 40,wrapWidth = sx*.8)
         txtStim.draw()
         win.flip()
-        keys = event.waitKeys()
-        if keys[0] in ['q','escape']:
-            datafile.close()
-            core.quit()
-    orangeUrn.setPos(leftPos)
-    blueUrn.setPos(rightPos)
+        getKeypress()
+    orangeUrn.setPos((0,0))
+    blueUrn.setPos((0,0))
     
     #Examples of beads drawn from orange container
-    orangeTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the orange container',height = 30,wrapWidth = sx*.8,pos=(0,sy*.25))
+    orangeTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the orange container',height = 40,wrapWidth = sx*.8)
     orangeTxt.draw()
     win.flip()
-    keys = event.waitKeys()
-    if keys[0] in ['q','escape']:
-        datafile.close()
-        core.quit()
+    getKeypress()
     # Examples of draws from the orange urn
     trials = [beads[0]]*3+[beads[1]]+[beads[0]]*2+[beads[1]]+[beads[0]]*2
     for t in trials:
         orangeUrn.draw()
         win.flip()
-        core.wait(.5)
+        core.wait(.25)
         
         orangeUrn.draw()
         t.draw()
         win.flip()
-        core.wait(1)
+        core.wait(.75)
     
     #Examples of beads drawn from blue container
-    blueTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the blue container',height = 30,wrapWidth = sx*.8,pos=(0,sy*.25))
+    blueTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the blue container',height = 40,wrapWidth = sx*.8)
     blueTxt.draw()
-    blueUrn.draw()
     win.flip()
-    keys = event.waitKeys()
-    if keys[0] in ['q','escape']:
-        datafile.close()
-        core.quit()
+    getKeypress()
     #Examples of draws from the blue urnPredText
     trials = [beads[1]]+[beads[0]]+[beads[1]]*4+[beads[0]]+[beads[1]]*3
     for t in trials:
         blueUrn.draw()
         win.flip()
-        core.wait(.5)
+        core.wait(.25)
         
         blueUrn.draw()
         t.draw()
         win.flip()
-        core.wait(1)
+        core.wait(.75)
+    exTrialText = visual.TextStim(win,text = 'Press any key to run through example trials',height = 40,wrapWidth = sx*.8)
+    exTrialText.draw()
+    win.flip()
+    getKeypress()
 
 #Instructions for hazard rate block
 def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos,rightPos):
     # Display instruction text for hazard condition
-    txt1 = 'In this task, one of two people will be drawing beads from containers containing only orange or only blue beads.'
-    txt2 = 'Each person switches from which container they draw their beads. One of the people (low switcher) switches infrequently between the two containers (switches 20% of the time) whereas the other person switches very frequently (high switcher) between containers (80% of the time).'
-    txt3 = 'You are going to see a few trial blocks and each trial block will have between 1 and 5 bead draws.\n\nAfter every bead you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
-    txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points based on your confidence.\n\nAnswering "not sure" will not result in gaining or losing any points.'
-    txtList = [txt1,txt2,txt3,txt4]
+    txt1 = 'In this part of the task, one of two people will be drawing beads from containers containing only orange or only blue beads.'
+    txt2 = 'Each person switches between the containers at different rates.\n\nOne person (low switcher) switches between containers 20% of the time.\n\nThe other person (high switcher) switches between containers 80% of the time.'
+    txt3 = 'In each trial block will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
+    txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
+    txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
+    txtList = [txt1,txt2,txt3,txt4,txt5]
     for i in np.arange(len(txtList)):
-        t = txtList[i]+'\n\nPress any key to continue'
-        txtStim = visual.TextStim(win,t,height = 30,wrapWidth = sx*.8)
+        t = txtList[i]+'\n\n\nPress any key to continue'
+        txtStim = visual.TextStim(win,t,height = 40,wrapWidth = sx*.8)
         txtStim.draw()
         win.flip()
-        keys = event.waitKeys()
-        if keys[0] in ['q','escape']:
-            datafile.close()
-            core.quit()
+        getKeypress()
     orangeFullUrn.setPos(leftPos)
     blueFullUrn.setPos(rightPos)
     
@@ -533,13 +540,10 @@ def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos
     hiPerson.setPos((0,sy*.25))
     
     #Examples of beads drawn from low switcher
-    lowTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the person who switches infrequently',height = 30,wrapWidth = sx*.8,pos=(0,sy*.25))
+    lowTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the person who switches infrequently',height = 40,wrapWidth = sx*.8)
     lowTxt.draw()
     win.flip()
-    keys = event.waitKeys()
-    if keys[0] in ['q','escape']:
-        datafile.close()
-        core.quit()
+    getKeypress()
     # Examples of draws from the low switcher
     trials = [beads[0]]*6+[beads[1]]*4
     urns = [orangeFullUrn]*6+[blueFullUrn]*4
@@ -547,22 +551,19 @@ def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos
         loPerson.draw()
         urns[i].draw()
         win.flip()
-        core.wait(.5)
+        core.wait(.25)
         
         loPerson.draw()
         urns[i].draw()
         trials[i].draw()
         win.flip()
-        core.wait(1)
+        core.wait(.75)
     
     #Examples of beads drawn from high switcher
-    hiTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the person who switches frequently',height = 30,wrapWidth = sx*.8,pos=(0,sy*.25))
+    hiTxt = visual.TextStim(win,text = 'Press any key to see examples of beads drawn from the person who switches frequently',height = 40,wrapWidth = sx*.8)
     hiTxt.draw()
     win.flip()
-    keys = event.waitKeys()
-    if keys[0] in ['q','escape']:
-        datafile.close()
-        core.quit()
+    getKeypress()
     # Examples of draws from the high switcher
     trials = [beads[0],beads[1],beads[0],beads[1],beads[0],beads[0],beads[1],beads[0],beads[1],beads[1]]
     urns = [orangeFullUrn,blueFullUrn,orangeFullUrn,blueFullUrn,orangeFullUrn,orangeFullUrn,blueFullUrn,orangeFullUrn,blueFullUrn,blueFullUrn]
@@ -570,14 +571,18 @@ def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos
         hiPerson.draw()
         urns[i].draw()
         win.flip()
-        core.wait(.5)
+        core.wait(.25)
         
         hiPerson.draw()
         urns[i].draw()
         trials[i].draw()
         win.flip()
-        core.wait(1)
-        
+        core.wait(.75)
+    exTrialText = visual.TextStim(win,text = 'Press any key to run through example trials',height = 40,wrapWidth = sx*.8)
+    exTrialText.draw()
+    win.flip()
+    getKeypress()
+
 ##################
 ## TRIAL HANDLER ##
 ##################
@@ -585,53 +590,69 @@ subInfo = [subID,age,sex,cond]
 # Based on the conditon set which type of trils goes first
 if cond == 1:
     blkTypes = ['urn','hazard']
-    blkText = ['Start Container Trials','Start Person Trials']
+    scoreInd = [0,1]
 else:
     blkTypes = ['hazard','urn']
-    blkText = ['Start Person Trials','Start Container Trials']
+    scoreInd = [1,0]
 
 #Iterate through different block types
 
 
-cnt = 0
-totalScore = 0
-for blkType in blkTypes:
+totalScore = [0,0]
+for cnt in np.arange(len(blkTypes)):
+    if blkTypes[cnt] == 'urn':
+        itemNames = ['orange','blue']
+        items = [orangeUrn,blueUrn]
+        predText = urnPredText
+    elif blkTypes[cnt] == 'hazard':
+        itemNames = ['low','high']
+        items = [low,high]
+        predText = hazardPredText
+    positions = [leftPos,rightPos]
     tScore = 100
-    if blkType == 'urn':
+    instrBlocks = [4]
+    intrIDs = [1]
+    if blkTypes[cnt] == 'urn' and test == False:
         urnInstructions(blueUrn,orangeUrn,beads,leftPos,rightPos)
-    else:
+        for i in np.arange(len(instrBlocks)):
+            positions = [leftPos,rightPos]
+            if np.random.uniform(0,1,1) < .5:
+                positions = [rightPos,leftPos]
+                itemNames = [itemNames[1],itemNames[0]]
+            respPos = itemNames
+            extscore = trialBlockRun(instrBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,intrIDs[i],tScore,instruct =True)
+    elif blkTypes[cnt] == 'hazard' and test == False:
         hazardInstructions(blueFullUrn,orangeFullUrn,low,high,beads,leftPos,rightPos)
-    
-    text = visual.TextStim(win,blkText[cnt],height = 30)
+        for i in np.arange(len(instrBlocks)):
+            positions = [leftPos,rightPos]
+            if np.random.uniform(0,1,1) < .5:
+                positions = [rightPos,leftPos]
+                itemNames = [itemNames[1],itemNames[0]]
+            respPos = itemNames
+            extscore = trialBlockRun(instrBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,intrIDs[i],tScore,instruct =True)
+    win.flip()
+    core.wait(.75)
+    text = visual.TextStim(win,'\n\nEnd of instructions.\n\nPress any key to start the real trials.',height = 40)
     text.draw()
     win.flip()
-    core.wait(2)
-    cnt += 1
+    getKeypress()
     #Run through Trials
     for i in np.arange(len(trialBlocks)):
-        if blkType == 'urn':
-            itemNames = ['orange','blue']
-            items = [orangeUrn,blueUrn]
-            predText = urnPredText
-        elif blkType == 'hazard':
-            itemNames = ['low','high']
-            items = [low,high]
-            predText = hazardPredText
         positions = [leftPos,rightPos]
         if np.random.uniform(0,1,1) < .5:
             positions = [rightPos,leftPos]
             itemNames = [itemNames[1],itemNames[0]]
-            print('reverse')
         respPos = itemNames
-        tscore = trialBlockRun(trialBlocks[i],subInfo,blkType,i+1,items,itemNames,positions,respPos,predText,beads,trialIDs[i],tScore)
+        tscore = trialBlockRun(trialBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,trialIDs[i],tScore)
         tScore += round(tscore)
-        totalScore += tScore
+        totalScore[scoreInd[cnt]] += tScore
 
 
 win.flip()
 core.wait(.5)
 
-endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nYour final score is: %s'%totalScore,height = 40)
-event.waitKeys()
-core.quit()
+endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s'%(str(round(totalScore[0])),str(round(totalScore[1])),str(sum(totalScore))),height = 40)
+endScreen.draw()
+win.flip()
+getKeypress()
 

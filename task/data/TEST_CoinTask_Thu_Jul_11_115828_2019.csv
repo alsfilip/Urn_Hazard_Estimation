@@ -1,0 +1,3 @@
+SubjectID,Age,Sex,Condition,BlockType,TrialBlock,TrialNumber,CurrGen,Bead,ItemLeft,ItemRight,SideChoisen,Prediction,Confidence,Correct,Reward,RT
+TEST,32,M,1,urn,1,1,orange,orange,orange,blue,0,orange,0.7,NA,NA,4.146438837051392
+TEST,32,M,1,urn,1,2,orange,orange,orange,blue,0,orange,1,NA,NA,2.5269899368286133

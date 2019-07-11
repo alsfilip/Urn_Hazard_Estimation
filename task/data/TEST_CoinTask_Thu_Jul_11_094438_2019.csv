@@ -1,0 +1,6 @@
+SubjectID,Age,Sex,Condition,BlockType,TrialBlock,TrialNumber,CurrGen,Bead,ItemLeft,ItemRight,SideChoisen,Prediction,Confidence,Correct,Reward,RT
+TEST,TEST,TEST,1,urn,1,1,blue,blue,orange,blue,1,blue,0.3,NA,NA,4.423350095748901
+TEST,TEST,TEST,1,urn,1,2,blue,blue,orange,blue,1,blue,0.57,NA,NA,2.972429037094116
+TEST,TEST,TEST,1,urn,1,3,blue,orange,orange,blue,1,blue,0.79,NA,NA,2.1853630542755127
+TEST,TEST,TEST,1,urn,1,4,blue,blue,orange,blue,1,blue,0.99,NA,NA,2.250091075897217
+TEST,TEST,TEST,1,urn,1,4,blue,NA,orange,blue,1,blue,0.99,1,10.106745885486593,NA
