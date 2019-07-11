@@ -58,7 +58,7 @@ else:
 #####################
 
 # Generate the trial blocks
-niter = 16 #number of times each trial block length is repeated - make sure this is an even number
+niter = 12 #number of times each trial block length is repeated - make sure this is an even number
 trialBlocks = [1,2,3,4,5]*niter
 random.shuffle(trialBlocks)
 
@@ -135,9 +135,9 @@ confLine_mid = visual.Rect(win,height = sy*.03,width = sy*lWidth,pos = (0,cfY),f
 confLine_right = visual.Rect(win,height = sy*.03,width = sy*lWidth,pos = (sx*posMult,cfY),fillColor='white')
 confLines = [confLine,confLine_left,confLine_mid,confLine_right]
 
-confLine_leftText = visual.TextStim(win,text = "100% confident\nOrange", alignHoriz = 'center',height = 20,pos=(-sx*posMult-addObject,cfY+-(sy*.1)))
-confLine_midText = visual.TextStim(win,text = "Not Sure", height = 20,pos=(0,cfY+-(sy*.1)))
-confLine_rightText = visual.TextStim(win,text = "100% confident\nBlue", height = 20,pos=(sx*posMult+addObject,cfY+-(sy*.1)))
+confLine_leftText = visual.TextStim(win,text = "100% confident\nOrange", alignHoriz = 'center',height = 30,pos=(-sx*posMult-addObject,cfY+-(sy*.1)))
+confLine_midText = visual.TextStim(win,text = "Not Sure", height = 30,pos=(0,cfY+-(sy*.1)))
+confLine_rightText = visual.TextStim(win,text = "100% confident\nBlue", height = 30,pos=(sx*posMult+addObject,cfY+-(sy*.1)))
 confText = [confLine_leftText,confLine_midText,confLine_rightText]
 
 #Subject confidence line
