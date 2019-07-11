@@ -23,7 +23,7 @@ The idea is that certainty dynamics (how certainty changes with each observation
 ##################
 ## SUBJECT INFO ##
 ##################
-test = True #Set test to true to skip instructions and not make the task full screen
+test = False #Set test to true to skip instructions and not make the task full screen
 if test == True:
     scr = 0
     fs = False
