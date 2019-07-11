@@ -23,7 +23,7 @@ The idea is that certainty dynamics (how certainty changes with each observation
 ##################
 ## SUBJECT INFO ##
 ##################
-test = False #Set test to true to skip instructions and not make the task full screen
+test = True #Set test to true to skip instructions and not make the task full screen
 if test == True:
     scr = 0
     fs = False
@@ -599,7 +599,7 @@ else:
 
 
 totalScore = [0,0]
-startText = visual.TextStim(win,text='Press any key to start the first part of the experiment.',height = 40,,wrapWidth = sx*.8)
+startText = visual.TextStim(win,text='Press any key to start the first part of the experiment.',height = 40,wrapWidth = sx*.8)
 startText.draw()
 win.flip()
 getKeypress()
@@ -652,15 +652,16 @@ for cnt in np.arange(len(blkTypes)):
         tscore = trialBlockRun(trialBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,trialIDs[i],tScore)
         tScore += round(tscore)
         totalScore[scoreInd[cnt]] = tScore
-    endText = visual.TextStim(win,text='End of first part.\n\nPress any key to start the instructions for the second part of the experiment.',height = 40,,wrapWidth = sx*.8)
-    endText.draw()
-    win.flip()
-    getKeypress()
+    if cnt == 0:
+        endText = visual.TextStim(win,text='End of first part.\n\nPress any key to start the instructions for the second part of the experiment.',height = 40,wrapWidth = sx*.8)
+        endText.draw()
+        win.flip()
+        getKeypress()
 
 win.flip()
 core.wait(.5)
 
-endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s'%(str(int(round(totalScore[0]))),str(int(round(totalScore[1]))),str(int(round(sum(totalScore)))),height = 40,wrapWidth = sx*.8)
+endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s'%(str(int(round(totalScore[0]))),str(int(round(totalScore[1]))),str(int(round(sum(totalScore))))),height = 40,wrapWidth = sx*.8)
 endScreen.draw()
 win.flip()
 getKeypress()
