@@ -35,7 +35,7 @@ if test == True:
 else:
     # Set full screen to true and use second monitor
     fs = True
-    scr = 1
+    scr = 0
     
     # Creates a dialogue box to get subject info before experiment starts
     infoBox = gui.Dlg(title = "Participant Information")
@@ -77,11 +77,11 @@ random.shuffle(trialIDs)
 path = os.getcwd()      # Get directory path
 
 # Create task window
-#disp = pl.getDisplayInformation()
-#sx = disp.width
-#sy = disp.height
-sx = 1000
-sy = 800
+disp = pl.getDisplayInformation()
+sx = disp.width
+sy = disp.height
+#sx = 1200
+#sy = 900
 win = visual.Window(size=(sx,sy),units="pix",fullscr=fs,screen = scr)
 
 #Get mouse
@@ -144,7 +144,7 @@ confText = [confLine_leftText,confLine_midText,confLine_rightText]
 subLine = visual.Rect(win,height = sy*.05,width = sx*lWidth,pos = (0,cfY),fillColor='red')
 
 #lineBounds
-lbounds = [-sx*(posMult*2),sx*(posMult*2)]
+lbounds = [-sx*(posMult),sx*(posMult)]
 
 # Bead reminders
 beadRem = {}
@@ -305,11 +305,11 @@ def predict(win,predText,cross,items,itemNames,positions,respPos,subSlider,prevB
                 conf = 1
             break
         elif (x >= bounds[0]) and (x <= bounds[1]) and (y < 50):
-            subSlider.setPos((x/2,cfY))
+            subSlider.setPos((x,cfY))
         elif x < bounds[0]:
-            subSlider.setPos((bounds[0]/2,cfY))
+            subSlider.setPos((bounds[0],cfY))
         elif x > bounds[1]:
-            subSlider.setPos((bounds[1]/2,cfY))
+            subSlider.setPos((bounds[1],cfY))
         getResp_screen.draw()
         subSlider.draw()
         win.flip()
@@ -521,7 +521,7 @@ def urnInstructions(blueUrn,orangeUrn,beads,leftPos,rightPos):
 #Instructions for hazard rate block
 def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos,rightPos):
     # Display instruction text for hazard condition
-    txt1 = 'In this part of the task, one of two people will be drawing beads from containers containing only orange or only blue beads.'
+    txt1 = 'In this part of the task, two people will be drawing beads from containers containing only orange or only blue beads.'
     txt2 = 'Each person switches between the containers at different rates.\n\nOne person (low switcher) switches between containers 20% of the time.\n\nThe other person (high switcher) switches between containers 80% of the time.'
     txt3 = 'In each trial block will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
     txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
@@ -616,18 +616,12 @@ for cnt in np.arange(len(blkTypes)):
         urnInstructions(blueUrn,orangeUrn,beads,leftPos,rightPos)
         for i in np.arange(len(instrBlocks)):
             positions = [leftPos,rightPos]
-            if np.random.uniform(0,1,1) < .5:
-                positions = [rightPos,leftPos]
-                itemNames = [itemNames[1],itemNames[0]]
             respPos = itemNames
             extscore = trialBlockRun(instrBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,intrIDs[i],tScore,instruct =True)
     elif blkTypes[cnt] == 'hazard' and test == False:
         hazardInstructions(blueFullUrn,orangeFullUrn,low,high,beads,leftPos,rightPos)
         for i in np.arange(len(instrBlocks)):
             positions = [leftPos,rightPos]
-            if np.random.uniform(0,1,1) < .5:
-                positions = [rightPos,leftPos]
-                itemNames = [itemNames[1],itemNames[0]]
             respPos = itemNames
             extscore = trialBlockRun(instrBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,intrIDs[i],tScore,instruct =True)
     win.flip()
@@ -638,6 +632,14 @@ for cnt in np.arange(len(blkTypes)):
     getKeypress()
     #Run through Trials
     for i in np.arange(len(trialBlocks)):
+        if blkTypes[cnt] == 'urn':
+            itemNames = ['orange','blue']
+            items = [orangeUrn,blueUrn]
+            predText = urnPredText
+        elif blkTypes[cnt] == 'hazard':
+            itemNames = ['low','high']
+            items = [low,high]
+            predText = hazardPredText
         positions = [leftPos,rightPos]
         if np.random.uniform(0,1,1) < .5:
             positions = [rightPos,leftPos]
@@ -645,13 +647,13 @@ for cnt in np.arange(len(blkTypes)):
         respPos = itemNames
         tscore = trialBlockRun(trialBlocks[i],subInfo,blkTypes[cnt],i+1,items,itemNames,positions,respPos,predText,beads,trialIDs[i],tScore)
         tScore += round(tscore)
-        totalScore[scoreInd[cnt]] += tScore
+        totalScore[scoreInd[cnt]] = tScore
 
 
 win.flip()
 core.wait(.5)
 
-endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s'%(str(round(totalScore[0])),str(round(totalScore[1])),str(sum(totalScore))),height = 40)
+endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s'%(str(round(totalScore[0])),str(round(totalScore[1])),str(round(sum(totalScore)))),height = 40,wrapWidth = sx*.8)
 endScreen.draw()
 win.flip()
 getKeypress()
