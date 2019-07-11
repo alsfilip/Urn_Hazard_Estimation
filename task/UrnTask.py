@@ -523,7 +523,7 @@ def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos
     # Display instruction text for hazard condition
     txt1 = 'In this part of the task, two people will be drawing beads from containers containing only orange or only blue beads.'
     txt2 = 'Each person switches between the containers at different rates.\n\nOne person (low switcher) switches between containers 20% of the time.\n\nThe other person (high switcher) switches between containers 80% of the time.'
-    txt3 = 'In each trial block will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
+    txt3 = 'In each trial block you will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
     txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
     txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
     txtList = [txt1,txt2,txt3,txt4,txt5]
