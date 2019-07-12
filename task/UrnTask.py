@@ -384,7 +384,7 @@ def adjustConf(conf):
     intercept = -log(.05)+1
     normFact = intercept+log(.95)
     if conf <= .05:
-        payoff = conf/low
+        payoff = conf/.05
     elif conf < .95:
         payoff = intercept + log(conf)
     elif conf >= .95:
@@ -429,7 +429,7 @@ def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respP
 
     #Show person that new trial block is starting
     if blkType == 'urn':
-        trialBlockType('Current Score: %d\n\n\nPress space to start draws from new container'%totScore,win)
+        trialBlockType('Current Score: %d\n\n\nPress space to start draws from a new container'%totScore,win)
         person = False
         if trialID == 1:
             rareID = 0
@@ -438,7 +438,7 @@ def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respP
         freqUrn = itemNames[trialID]
         rareUrn = itemNames[rareID]
     else:
-        trialBlockType('Current Score: %d\n\n\nPress space to start draws from new person'%totScore,win)
+        trialBlockType('Current Score: %d\n\n\nPress space to start draws from a new person'%totScore,win)
         person = itemNames[trialID]
         freqUrn = 'orange'
         rareUrn = 'blue'
@@ -467,8 +467,8 @@ def urnInstructions(blueUrn,orangeUrn,beads,leftPos,rightPos):
     # Display instruction text for urn condition
     txt1 = 'In this part of the task, you will see blue and orange beads and be asked to guess from which container the beads are being drawn.'
     txt2 = 'One of the containers has 80% orange beads and 20% blue beads.\n\nThe other container has 80% blue beads and 20% orange beads'
-    txt3 = 'In each trial block you will see between 1 and 5 beads drawn from one of the two containers.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn from the orange or blue container.'
-    txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
+    txt3 = 'In this part of the task you will see between 1 and 5 beads drawn from one of the two containers.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn from the orange or blue container.'
+    txt4 = 'When the beads are done being drawn from the container, you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
     txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
     txtList = [txt1,txt2,txt3,txt4,txt5]
     for i in np.arange(len(txtList)):
@@ -523,8 +523,8 @@ def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos
     # Display instruction text for hazard condition
     txt1 = 'In this part of the task, two people will be drawing beads from containers containing only orange or only blue beads.'
     txt2 = 'Each person switches between the containers at different rates.\n\nOne person (low switcher) switches between containers 20% of the time.\n\nThe other person (high switcher) switches between containers 80% of the time.'
-    txt3 = 'In each trial block you will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
-    txt4 = 'At the end of each trial block you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
+    txt3 = 'In this part of the task you will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
+    txt4 = 'After the person is done drawing beads, you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
     txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
     txtList = [txt1,txt2,txt3,txt4,txt5]
     for i in np.arange(len(txtList)):
