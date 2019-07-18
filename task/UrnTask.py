@@ -404,14 +404,14 @@ def feedback(response,correct,rside,conf,imBuffer,totPoints,fbPositions = [leftP
         points = 0
         imBuffer.draw()
     elif response == correct:
-        points = 10*adjustConf(conf)
+        points = 10*adjustConf(conf) #adjusted (log) reward
         pcol = 'green'
         imBuffer.draw()
         fb = visual.Rect(win,height=sy*.12,width=sy*.12,fillColor=(0,1,0),lineWidth=0,opacity = .5)
         fb.setPos(fbPos)
         fb.draw()
     elif response != correct:
-        points = -10*adjustConf(conf)
+        points = -10*conf #linear punishment
         pcol = 'red'
         fb = visual.TextStim(win,text = 'X', height = 100,color = 'red')
         imBuffer.draw()
