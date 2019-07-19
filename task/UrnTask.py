@@ -380,16 +380,29 @@ def genTrials(blkType, freqUrn,rareUrn, ntrials,person = False):
     return urns, beadDraws
 
 #Convert confidence value into adjusted points value
-def adjustConf(conf):
-    intercept = -log(.05)+1
-    normFact = intercept+log(.95)
-    if conf <= .05:
-        payoff = conf/.05
-    elif conf < .95:
-        payoff = intercept + log(conf)
-    elif conf >= .95:
-        payoff = intercept + log(.95)+(conf-.95)/.95
-    return(payoff/normFact)
+#def adjustConf(conf):
+#    intercept = -log(.05)+1
+#    normFact = intercept+log(.95)
+#    if conf <= .05:
+#        payoff = conf/.05
+#    elif conf < .95:
+#        payoff = intercept + log(conf)
+#    elif conf >= .95:
+#        payoff = intercept + log(.95)+(conf-.95)/.95
+#    return(payoff/normFact)
+
+def adjustConf(conf,slp,loBound=-.5,hiBound=.5):
+    lowestVal = 1/(1+np.exp(-loBound/slp))
+    highestVal = 1/(1+np.exp(-hiBound/slp))
+    normFact = highestVal-lowestVal 
+    if conf <= loBound:
+        rew = 0
+    elif conf >= hiBound:
+        rew = 1
+    else:
+        rew = ((1/(1+np.exp(-conf/slp)))-lowestVal)/normFact
+    pay = (rew*2)-1 #adjust to put on a -1,1 scale
+    return(pay)
 
 # Feedback screen
 def feedback(response,correct,rside,conf,imBuffer,totPoints,fbPositions = [leftPos,rightPos]):
