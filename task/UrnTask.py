@@ -58,7 +58,7 @@ else:
 #####################
 
 # Generate the trial blocks
-niter = 10 #number of times each trial block length is repeated - make sure this is an even number
+niter = 2 #number of times each trial block length is repeated - make sure this is an even number
 trialBlocks = [1,2,3,4,5]*niter
 random.shuffle(trialBlocks)
 
@@ -417,7 +417,7 @@ def feedback(response,correct,rside,conf,imBuffer,totPoints,fbPositions = [leftP
         points = 0
         imBuffer.draw()
     elif response == correct:
-        points = 10*adjustConf(conf) #adjusted (log) reward
+        points = 10*adjustConf(conf/2,.08) #adjusted reward - logit with slope = to .08
         pcol = 'green'
         imBuffer.draw()
         fb = visual.Rect(win,height=sy*.12,width=sy*.12,fillColor=(0,1,0),lineWidth=0,opacity = .5)
@@ -430,6 +430,7 @@ def feedback(response,correct,rside,conf,imBuffer,totPoints,fbPositions = [leftP
         imBuffer.draw()
         fb.setPos(fbPos)
         fb.draw()
+    points = round(points)
     pointsText = visual.TextStim(win,text = '%d points'%points,height = 30,color=pcol,pos=(0,sy*.25))
     pointsText.draw()
 
@@ -464,9 +465,11 @@ def trialBlockRun(ntrials,subInfo,blkType,tblock,items,itemNames,positions,respP
         start = time.time()
         response,confidence,side,respScreen = predict(win,predText,cross,items,itemNames,positions,respPos,subLine,trials,i+1,posSet,mouse,lbounds)
         print('Response:'+str(response))
+        print('Confidence:'+str(confidence))
         if instruct == False:
             recDat(dfile,[subInfo[0],subInfo[1],subInfo[2],subInfo[3],blkType,tblock,i+1,itemNames[trialID],trials[i],itemNames[0],itemNames[1],side,response,confidence,'NA','NA',str(time.time()-start)])
     correct,tScore = feedback(response,itemNames[trialID],side,confidence,respScreen,totScore)
+    print([totScore,tScore])
     if instruct == False:
         recDat(dfile,[subInfo[0],subInfo[1],subInfo[2],subInfo[3],blkType,tblock,i+1,itemNames[trialID],'NA',itemNames[0],itemNames[1],side,response,confidence,int(correct),tScore,'NA'])
     return(tScore)
@@ -482,8 +485,9 @@ def urnInstructions(blueUrn,orangeUrn,beads,leftPos,rightPos):
     txt2 = 'One of the containers has 80% orange beads and 20% blue beads.\n\nThe other container has 80% blue beads and 20% orange beads'
     txt3 = 'In this part of the task you will see between 1 and 5 beads drawn from one of the two containers.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn from the orange or blue container.'
     txt4 = 'When the beads are done being drawn from the container, you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
-    txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
-    txtList = [txt1,txt2,txt3,txt4,txt5]
+    txt5 = 'To get the most points by the end of the task, the best strategy is to report your confidence as accurately as possible.'
+    txt6 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
+    txtList = [txt1,txt2,txt3,txt4,txt5,txt6]
     for i in np.arange(len(txtList)):
         t = txtList[i]+'\n\nPress any key to continue'
         txtStim = visual.TextStim(win,t,height = 40,wrapWidth = sx*.8)
@@ -538,8 +542,9 @@ def hazardInstructions(blueFullUrn,orangeFullUrn,loPerson,hiPerson,beads,leftPos
     txt2 = 'Each person switches between the containers at different rates.\n\nOne person (low switcher) switches between containers 20% of the time.\n\nThe other person (high switcher) switches between containers 80% of the time.'
     txt3 = 'In this part of the task you will see between 1 and 5 beads drawn from one of the two people.\n\nAfter every bead is drawn you will be asked to rate how confident you are that the beads are being drawn by the low switcher or the high switcher.'
     txt4 = 'After the person is done drawing beads, you will get points for your predictions.\n\nIf you guess correctly, you will get between 0 and 10 points, depending on how confident you were in your answer.\n\nIf you guess incorrectly, you will lose between 0 and 10 points.\n\nAnswering "not sure" will not result in gaining or losing any points.'
-    txt5 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
-    txtList = [txt1,txt2,txt3,txt4,txt5]
+    txt5 = 'To get the most points by the end of the task, the best strategy is to report your confidence as accurately as possible.'
+    txt6 = 'You will start with 100 points and receive a payment bonus for scores above 100.\n\nThe more points you get above 100, the higher your payment bonus.'
+    txtList = [txt1,txt2,txt3,txt4,txt5,txt6]
     for i in np.arange(len(txtList)):
         t = txtList[i]+'\n\n\nPress any key to continue'
         txtStim = visual.TextStim(win,t,height = 40,wrapWidth = sx*.8)
@@ -674,7 +679,9 @@ for cnt in np.arange(len(blkTypes)):
 win.flip()
 core.wait(.5)
 
-endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s'%(str(int(round(totalScore[0]))),str(int(round(totalScore[1]))),str(int(round(sum(totalScore))))),height = 40,wrapWidth = sx*.8)
+ub = 900
+cashBonus = (sum(totalScore)/ub)*10
+endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s\n\nCash Bonus: $%s'%(str(int(round(totalScore[0]))),str(int(round(totalScore[1]))),str(int(round(sum(totalScore)))),str(int(round(cashBonus)))),height = 40,wrapWidth = sx*.8)
 endScreen.draw()
 win.flip()
 getKeypress()
