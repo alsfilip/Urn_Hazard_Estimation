@@ -1,0 +1,393 @@
+```{r}
+genTrials = function(ntrials,p,haz=F){
+    # Function that generates observations either with or without a hazard rate
+    # Arguments:
+    #     - ntrials: number of trials for a particular block
+    #     - p: bernoulli probability - below .5 means favors 'red' urn, above .5 favors 'blue' urn
+    #     - h: hazard rate - how often the urns switch - if set to False (F) beads are drawn from one urn
+    #
+    # Output:
+    #     - data frame with a column for trials, hazard rate (if applicable), urn generating beads, and observed beads
+    
+    if(haz == F){
+        urns = rep(sample(c(0,1),1),ntrials)
+        beads = ifelse(urns == 1,as.numeric(runif(ntrials) < p), as.numeric(runif(ntrials) > p))
+    }
+    else{
+        beads = rep(NA,ntrials)
+        urns = rep(NA,ntrials)
+        currUrn = sample(c(0,1),1) #0 indicates red urn, 1 indicates blue urn
+        for(t in 1:ntrials){
+            beads[t] = as.numeric(ifelse(currUrn == 1,runif(1) < p,runif(1) > p))
+            urns[t] = currUrn
+            currUrn = ifelse(runif(1) < haz,c(0,1)[currUrn != c(0,1)],currUrn)
+        }
+    }
+    return(data.frame(Trials = 1:ntrials,
+                     Hazard = ifelse(haz == F,rep(NA,ntrials),rep(haz,ntrials)),
+                     Urns = urns,
+                     Beads = beads))
+}
+
+nl_conf = function(conf){
+  intercept = -log(.05)+1
+  normFact = intercept+log(.95)
+  if(conf <= .05){
+    payoff = conf/.05
+  }
+  else if(conf < .95){
+    payoff = intercept + log(conf)
+  }
+  else if(conf >= .95){
+    payoff = intercept + log(.95)
+  }
+  return(payoff/normFact)
+}
+
+
+nl_payout = function(conf,slp,loBound = 0,hiBound = 1){
+  #Here the confidence value should be between 0 and 1, where 1 is full confidence in blue and 0 is full confidence in orange
+  lowestVal = 1/(1+exp(-(loBound-.5)/slp))
+  highestVal = 1/(1+exp(-(hiBound-.5)/slp))
+  normFact = highestVal-lowestVal
+  if(conf <= loBound){
+    rew = 0
+  }
+  else if(conf >= hiBound){
+    rew = 1
+  }
+  else{
+    rew = ((1/(1+exp(-(conf-.5)/slp)))-lowestVal)/normFact
+  }
+  pay = (rew*2)-1 #adjust to put on a -1,1 scale
+  return(pay)
+}
+# 
+ps = seq(0,1,.01)
+# plot(ps,sapply(ps,function(x) nl_payout(x,.08)))
+
+rew_func = data.frame(PBlue = rep(ps,3),
+                      Slope = factor(c(rep('Slope = 100',length(ps)),rep('Slope = .1',length(ps)),rep('Slope = .01',length(ps)))),
+                      Correct = c(sapply(ps,function(x) nl_payout(x,100)),sapply(ps,function(x) nl_payout(x,.1)),sapply(ps,function(x) nl_payout(x,.01))),
+                      Error = c(rep(seq(-1,1,.02),3)))
+library(tidyr)
+rew_func.long = gather(rew_func,TrialType,Points,Correct:Error)
+rew_func.long$Slope = factor(rew_func.long$Slope,levels=c('Slope = 100','Slope = .1','Slope = .01'))
+
+library(ggplot2)
+slp_ex_plt = ggplot(rew_func.long,aes(PBlue,Points,color=TrialType))+
+  geom_hline(yintercept=c(0),linetype=2)+
+  geom_vline(xintercept=c(.5),linetype=2)+
+  geom_line(size=1)+
+  scale_y_continuous(breaks=c(-1,-.5,0,.5,1),labels=c(10,5,0,5,10))+
+  scale_x_continuous(breaks=c(0,.5,1),labels=c(0,.5,1))+
+  ylab('Points gained/lost')+
+  xlab('Confidence in Blue Urn/High Hazard')+
+  scale_color_manual(values = c('green','red'))+
+  facet_wrap(~Slope)+
+  theme(
+      axis.text.x = element_text(size=12,color='black'),
+      axis.text.y = element_text(size=12,color='black'),
+      axis.title = element_text(size=16,color='black'),
+      strip.background = element_blank(),
+      strip.text = element_text(size=18,color='black'),
+      axis.line.x = element_line(size=.5),
+      axis.line.y = element_line(size=.5),
+      panel.background = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+
+ggsave('/Users/alsfilip/Desktop/klab/slp_ex.pdf',slp_ex_plt,height=4,width = 12)
+```
+```{r}
+stateEstimator = function(beads,urns,pspace,h = F,pprior = c(.5,.5),haz = F,slp = 100,add = 0){
+    # Function that generates responses from a perfect accumulator state estimator
+    # Arguments:
+    #     - beads: observed sequence of beads
+    #     - pspace: space of bernoulli probabilities p that could apply to the urns - larger space = more urns to consider
+    #     - urns: urns generating the beads (for data)
+    #     - haz: hazard rate (if applicable - for data)
+    #     - pprior: prior over urn space - defaults to uniform
+    # Output:
+    #     - data frame with a column for trials, estimator type, hazard rate (if applicable), urn generating beads, observed beads, confidence in the blue urn, confidence in the correct urn
+  
+    # Run model on sequence of observations
+    prior = matrix(NA,nrow = length(pspace),ncol = length(beads))
+    posterior = prior
+    lin_points = rep(NA,length(beads))
+    nl_points = rep(NA,length(beads))
+    max_points = rep(NA,length(beads))
+    for(t in 1:length(beads)){
+        if(t == 1){
+            prior[,t] = pprior
+        }
+        else{
+            prior[,t] = posterior[,t-1]
+        }
+        likelihood = pspace
+        if(beads[t] == 0){
+            likelihood = 1-pspace 
+        }
+        posterior[,t] = prior[,t]*likelihood
+        posterior[,t] = posterior[,t]/sum(posterior[,t])
+    }
+    posterior_blue = posterior[2,]
+    
+    #Save vector of hazard rates if applicable
+    if(haz == F){
+        hazard = rep(NA,length(beads))
+    }
+    else{
+        hazard = rep(haz,length(beads))
+    }
+    
+    #Get correct responses and payouts - for linear/symmetric payouts, and asymmetric logit payout function
+    correct_urn = ifelse(urns[length(beads)] == 1,posterior_blue[length(beads)],1-posterior_blue[length(beads)])
+    cu_add = correct_urn + add
+    if(correct_urn < .5){
+      cu_add = correct_urn - add
+    }
+    
+    if(cu_add < 0){
+      cu_add = 0
+    }
+    else if(cu_add > 1){
+      cu_add = 1
+    }
+
+    print(c(correct_urn,cu_add))
+    nl_cu = nl_payout(cu_add,slp)
+    cu = (correct_urn-.5)/.5
+    cu_add = (cu_add-.5)/.5
+    
+    print(c(cu,cu_add,nl_cu))
+    
+    #Try a couple of other betting policies, such as constantly increasing confidence in original direction
+
+    #Compute points using different functions
+    lin_points[length(beads)] = round(cu*10)
+    if(round(correct_urn,2) == .50){
+      lin_points[length(beads)] = 0
+      max_points[length(beads)] = 0
+    }
+    else if(correct_urn > .5){
+      max_points[length(beads)] = 10
+    }
+    else if(correct_urn < .5){
+      max_points[length(beads)] = -10
+    }
+    
+    if(round(cu_add,2) == 0){
+      nl_points[length(beads)] = 0
+    }
+    else if(cu_add > 0){
+      nl_points[length(beads)] = nl_cu*10
+    }
+    else if(cu_add < 0){
+      nl_points[length(beads)] = cu_add*10
+    }
+    return(data.frame(Trials = 1:length(beads),
+                     Estimator = rep('State',length(beads)),
+                     Hazard = hazard,
+                     Urns = urns,
+                     Beads = beads,
+                     Prior_Urn = prior[2,],
+                     Posterior_Urn = posterior[2,],
+                     Prior_Hazard = rep(NA,length(beads)),
+                     Posterior_Hazard = rep(NA,length(beads)),
+                     Correct_Urn = ifelse(urns == 1,posterior_blue,1-posterior_blue),
+                     Correct_Hazard = rep(NA,length(beads)),
+                     Lin_Points = lin_points,
+                     NL_Points = nl_points,
+                     Max_Points = max_points))
+}
+
+trialNum = rep(1:5,2)
+beads = c()
+urns = c()
+trialNums = c()
+for(i in 1:length(trialNum)){
+  trialNums = c(trialNums,rep(i,trialNum[i]))
+  trials = genTrials(trialNum[i],.8)
+  beads = c(beads,trials$Beads)
+  urns = c(urns,trials$Urns)
+}
+
+slp = 100
+add = .5
+b = beads[trialNums == 1]
+u = urns[trialNums == 1]
+se_sim = stateEstimator(b,u,c(.2,.8),slp=slp,add=add)
+for(i in 2:length(unique(trialNums))){
+  b = beads[trialNums == i]
+  u = urns[trialNums == i]
+  se_sim = rbind(se_sim,stateEstimator(b,u,c(.2,.8),slp=slp,add=add))
+}
+print(sum(se_sim$Max_Points,na.rm=T))
+print(sum(se_sim$NL_Points,na.rm=T))
+```
+
+```{r}
+simAdd = function(beads,urns,trialNums,slp,add){
+  b = beads[trialNums == 1]
+  u = urns[trialNums == 1]
+  se_sim = stateEstimator(b,u,c(.2,.8),slp=slp,add=add)
+  for(i in 2:length(unique(trialNums))){
+    b = beads[trialNums == i]
+    u = urns[trialNums == i]
+    se_sim = rbind(se_sim,stateEstimator(b,u,c(.2,.8),slp=slp,add=add))
+  }
+  nl_p = sum(se_sim$NL_Points,na.rm=T)
+  max_p = sum(se_sim$Max_Points,na.rm=T)
+  return(nl_p/max_p)
+}
+
+
+
+trialNum = rep(1:5,10)
+beads = c()
+urns = c()
+trialNums = c()
+for(i in 1:length(trialNum)){
+  trialNums = c(trialNums,rep(i,trialNum[i]))
+  trials = genTrials(trialNum[i],.8)
+  beads = c(beads,trials$Beads)
+  urns = c(urns,trials$Urns)
+}
+
+library(parallel)
+cl = makeCluster(8)
+clusterExport(cl = cl,varlist = c('simAdd','genTrials','stateEstimator','adding','nl_payout','simAdd','beads','urns','trialNums','slpVals'))
+a = parSapply(cl,seq(.01,1,.01),function(slp) simAdd(beads,urns,trialNums,slp,0))
+stopCluster(cl)
+a.df = data.frame(Slope = seq(.01,1,.01),Reward = a)
+
+rasym.plt = ggplot(a.df,aes(Slope,Reward))+
+  geom_line(size = 1)+
+  geom_hline(yintercept=c(1),linetype=2)+
+  scale_x_continuous(breaks=c(.1,.5,.9))+
+  ylab('Asymmetric Reward/Hard Max Reward')+
+  xlab('Reward Slope')+
+  theme(
+      axis.text.x = element_text(size=12,color='black'),
+      axis.text.y = element_text(size=12,color='black'),
+      axis.ticks = element_blank(),
+      axis.title = element_text(size=16,color='black'),
+      strip.background = element_blank(),
+      strip.text = element_text(size=18,color='black',face='italic'),
+      axis.line.x = element_line(size=.5),
+      axis.line.y = element_line(size=.5),
+      panel.background = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+ggsave('/Users/alsfilip/Desktop/klab/rew_asym.pdf',rasym.plt,height=4,width = 7)
+```
+
+
+
+```{r}
+adding = seq(0,.5,.05)
+slpVals = seq(.01,.2,.005)
+adds = c()
+slps = c()
+rew = c()
+
+trialNum = rep(1:5,10)
+beads = c()
+urns = c()
+trialNums = c()
+for(i in 1:length(trialNum)){
+  trialNums = c(trialNums,rep(i,trialNum[i]))
+  trials = genTrials(trialNum[i],.8)
+  beads = c(beads,trials$Beads)
+  urns = c(urns,trials$Urns)
+}
+
+# t = sapply(adding,function(x) simAdd(beads,urns,trialNums,.01,x))
+# plot(adding,t)
+
+library(parallel)
+cl = makeCluster(8)
+for(i in 1:length(slpVals)){
+  print(slpVals[i])
+clusterExport(cl = cl,varlist = c('simAdd','genTrials','stateEstimator','adding','nl_payout','simAdd','beads','urns','trialNums','slpVals','adds','slps','i'))
+    slps = c(slps,rep(slpVals[i],length(adding)))
+    adds = c(adds,adding)
+    r = parSapply(cl,adding,function(x) simAdd(beads,urns,trialNums,slpVals[i],x))
+    rew = c(rew,r)
+}
+stopCluster(cl)
+
+rew_sims = data.frame(Slope = slps,Add = adds,Reward = rew)
+saveRDS(rew_sims,'./rew_sims.rds')
+rew_sims = readRDS('./rew_sims.rds')
+library(ggplot2)
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+ggplot(rew_sims,aes(Add,Slope))+
+  geom_raster(aes(fill = Reward))+
+  scale_fill_gradientn(colors=jet.colors(7),name='Reward Ratio')+
+  geom_vline(xintercept=c(0),linetype=2,color='white',size=1)+
+  #scale_y_continuous(breaks=c(0.01,.5,1),expand=c(0,0))+
+  #scale_x_continuous(breaks=c(-.5,-.25,0,.25,.5),expand=c(0,0))+
+  xlab('Bias')+
+  ylab('Reward Slope')+
+  theme(
+      axis.text.x = element_text(size=12,color='black'),
+      axis.text.y = element_text(size=12,color='black'),
+      axis.ticks = element_blank(),
+      axis.title = element_text(size=16,color='black'),
+      strip.background = element_blank(),
+      strip.text = element_text(size=18,color='black',face='italic'),
+      axis.line.x = element_blank(),
+      axis.line.y = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+  
+t = sapply(adding,function(x) simAdd(beads,urns,trialNums,100,x))
+plot(adding,t)
+```
+
+
+
+
+se_sim = stateEstimator(trials$Beads,trials$Urns,c(.2,.8),slp=slp,add=adding[1])
+for(i in 2:length(trialNum)){
+  trials = genTrials(trialNum[i],.8)
+  se_sim = rbind(se_sim,stateEstimator(trials$Beads,trials$Urns,c(.2,.8),slp=slp,add=add))
+}
+
+simAdd = function(slp,add){
+  trialNum = rep(1:5,10)
+  trials = genTrials(trialNum[1],.8)
+  se_sim = stateEstimator(trials$Beads,trials$Urns,c(.2,.8),slp=slp,add=add)
+  for(i in 2:length(trialNum)){
+    trials = genTrials(trialNum[i],.8)
+    se_sim = rbind(se_sim,stateEstimator(trials$Beads,trials$Urns,c(.2,.8),slp=slp,add=add))
+  }
+  return(sum(se_sim$NL_Points,na.rm=T)-sum(se_sim$Max_Points,na.rm=T))
+}
+
+print(simAdd(.08,0))
+
+simBets(.1)
+slps = rep(.08,100)
+library(parallel)
+cl = makeCluster(8)
+clusterExport(cl = cl,varlist = c('simBets','genTrials','stateEstimator','slps','nl_payout','simAdd'))
+a = parSapply(cl,slps,function(x) simBets(x))
+stopCluster(cl)
+
+plot(a)
+```
+```{r}
+pB = seq(-.5,.5,.01)
+
+plot(pB+.5,(1/(1+exp(-pB/1))),ylim=c(0,1),type='l')
+
+```
+
+
