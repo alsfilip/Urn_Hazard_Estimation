@@ -679,8 +679,11 @@ for cnt in np.arange(len(blkTypes)):
 win.flip()
 core.wait(.5)
 
-ub = 900
-cashBonus = (sum(totalScore)/ub)*10
+ub = 650
+endow = 200
+cashBonus = round(((sum(totalScore)-endow)/ub)*10)
+if cashBonus > 10:
+    cashBonus = 10
 endScreen = visual.TextStim(win,text = 'Experiment done! Thank you for your participation!\n\nFinal container score: %s\n\nFinal person score: %s\n\nTotal Score: %s\n\nCash Bonus: $%s'%(str(int(round(totalScore[0]))),str(int(round(totalScore[1]))),str(int(round(sum(totalScore)))),str(int(round(cashBonus)))),height = 40,wrapWidth = sx*.8)
 endScreen.draw()
 win.flip()
