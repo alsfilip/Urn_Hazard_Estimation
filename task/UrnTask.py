@@ -679,7 +679,7 @@ for cnt in np.arange(len(blkTypes)):
 win.flip()
 core.wait(.5)
 
-ub = 650
+ub = 660
 endow = 200
 cashBonus = round(((sum(totalScore)-endow)/ub)*10)
 if cashBonus > 10:
