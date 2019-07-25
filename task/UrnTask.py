@@ -58,7 +58,7 @@ else:
 #####################
 
 # Generate the trial blocks
-niter = 2 #number of times each trial block length is repeated - make sure this is an even number
+niter = 10  #number of times each trial block length is repeated - make sure this is an even number
 trialBlocks = [1,2,3,4,5]*niter
 random.shuffle(trialBlocks)
 
