@@ -145,7 +145,10 @@ stateEstimator = function(beads,urns,pspace,h = F,pprior = c(.5,.5),haz = F,slp 
     #Get correct responses and payouts - for linear/symmetric payouts, and asymmetric logit payout function
     correct_urn = ifelse(urns[length(beads)] == 1,posterior_blue[length(beads)],1-posterior_blue[length(beads)])
     cu_add = correct_urn + add
-    if(correct_urn < .5){
+    if(round(correct_urn,2) == .5){
+      cu_add = correct_urn
+    }
+    else if(correct_urn < .5){
       cu_add = correct_urn - add
     }
     
@@ -156,12 +159,12 @@ stateEstimator = function(beads,urns,pspace,h = F,pprior = c(.5,.5),haz = F,slp 
       cu_add = 1
     }
 
-    print(c(correct_urn,cu_add))
+    #print(c(correct_urn,cu_add))
     nl_cu = nl_payout(cu_add,slp)
     cu = (correct_urn-.5)/.5
     cu_add = (cu_add-.5)/.5
     
-    print(c(cu,cu_add,nl_cu))
+    #print(c(cu,cu_add,nl_cu))
     
     #Try a couple of other betting policies, such as constantly increasing confidence in original direction
 
@@ -182,10 +185,10 @@ stateEstimator = function(beads,urns,pspace,h = F,pprior = c(.5,.5),haz = F,slp 
       nl_points[length(beads)] = 0
     }
     else if(cu_add > 0){
-      nl_points[length(beads)] = nl_cu*10
+      nl_points[length(beads)] = round(nl_cu)*10
     }
     else if(cu_add < 0){
-      nl_points[length(beads)] = cu_add*10
+      nl_points[length(beads)] = round(cu_add)*10
     }
     return(data.frame(Trials = 1:length(beads),
                      Estimator = rep('State',length(beads)),
@@ -203,7 +206,8 @@ stateEstimator = function(beads,urns,pspace,h = F,pprior = c(.5,.5),haz = F,slp 
                      Max_Points = max_points))
 }
 
-trialNum = rep(1:5,2)
+tnum = 5000
+trialNum = rep(1:5,tnum)
 beads = c()
 urns = c()
 trialNums = c()
@@ -214,8 +218,8 @@ for(i in 1:length(trialNum)){
   urns = c(urns,trials$Urns)
 }
 
-slp = 100
-add = .5
+slp = .08
+add = 0
 b = beads[trialNums == 1]
 u = urns[trialNums == 1]
 se_sim = stateEstimator(b,u,c(.2,.8),slp=slp,add=add)
@@ -225,7 +229,7 @@ for(i in 2:length(unique(trialNums))){
   se_sim = rbind(se_sim,stateEstimator(b,u,c(.2,.8),slp=slp,add=add))
 }
 print(sum(se_sim$Max_Points,na.rm=T))
-print(sum(se_sim$NL_Points,na.rm=T))
+print(sum(se_sim$NL_Points,na.rm=T)/(tnum/10))
 ```
 
 ```{r}
@@ -240,12 +244,12 @@ simAdd = function(beads,urns,trialNums,slp,add){
   }
   nl_p = sum(se_sim$NL_Points,na.rm=T)
   max_p = sum(se_sim$Max_Points,na.rm=T)
-  return(nl_p/max_p)
+  return(se_sim)
 }
 
 
 
-trialNum = rep(1:5,10)
+trialNum = rep(1:5,10000)
 beads = c()
 urns = c()
 trialNums = c()
@@ -255,6 +259,8 @@ for(i in 1:length(trialNum)){
   beads = c(beads,trials$Beads)
   urns = c(urns,trials$Urns)
 }
+
+a=simAdd(beads,urns,trialNum,.08,0)
 
 library(parallel)
 cl = makeCluster(8)
@@ -288,13 +294,13 @@ ggsave('/Users/alsfilip/Desktop/klab/rew_asym.pdf',rasym.plt,height=4,width = 7)
 
 
 ```{r}
-adding = seq(0,.5,.05)
-slpVals = seq(.01,.2,.005)
+adding = seq(-.5,.5,.02)
+slpVals = seq(.01,1,.01)
 adds = c()
 slps = c()
 rew = c()
 
-trialNum = rep(1:5,10)
+trialNum = rep(1:5,50)
 beads = c()
 urns = c()
 trialNums = c()
@@ -325,12 +331,13 @@ saveRDS(rew_sims,'./rew_sims.rds')
 rew_sims = readRDS('./rew_sims.rds')
 library(ggplot2)
 jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
-ggplot(rew_sims,aes(Add,Slope))+
+rew_bslp.plt = ggplot(subset(rew_sims,Add >=-.1 & Add < .25),aes(Add,Slope))+
   geom_raster(aes(fill = Reward))+
   scale_fill_gradientn(colors=jet.colors(7),name='Reward Ratio')+
   geom_vline(xintercept=c(0),linetype=2,color='white',size=1)+
-  #scale_y_continuous(breaks=c(0.01,.5,1),expand=c(0,0))+
-  #scale_x_continuous(breaks=c(-.5,-.25,0,.25,.5),expand=c(0,0))+
+  geom_hline(yintercept = c(.08),linetype=2,color='white',size=1)+
+  scale_y_continuous(breaks=c(0.01,.5,1),expand=c(0,0))+
+  scale_x_continuous(breaks=c(-.1,0,.1,.2),expand=c(0,0))+
   xlab('Bias')+
   ylab('Reward Slope')+
   theme(
@@ -346,9 +353,54 @@ ggplot(rew_sims,aes(Add,Slope))+
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank()
     )
-  
+
+ggsave('/Users/alsfilip/Desktop/klab/rew_bslp.pdf',rew_bslp.plt,height=4,width = 7)
 t = sapply(adding,function(x) simAdd(beads,urns,trialNums,100,x))
 plot(adding,t)
+
+slp = .08
+simSlope = ggplot(subset(rew_sims,Add >=-.12 & Add < .25 & Slope == 1),aes(Add,Reward))+
+  geom_line(size=1)+
+  geom_hline(yintercept = c(1),linetype=2)+
+  geom_vline(xintercept=c(0),linetype=2)+
+  ylab('Asymmetric Reward/Hard Max Reward')+
+  xlab('Reward Slope')+
+  theme(
+      axis.text.x = element_text(size=12,color='black'),
+      axis.text.y = element_text(size=12,color='black'),
+      axis.ticks = element_blank(),
+      axis.title = element_text(size=16,color='black'),
+      strip.background = element_blank(),
+      strip.text = element_text(size=18,color='black',face='italic'),
+      axis.line.x = element_line(size=.5),
+      axis.line.y = element_line(size=.5),
+      panel.background = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+ggsave('/Users/alsfilip/Desktop/klab/symSlope.pdf',simSlope,height=4,width = 7)
+
+bestSlope = ggplot(subset(rew_sims,Add >=-.12 & Add < .25 & Slope == .08),aes(Add,Reward))+
+  geom_line(size=1)+
+  geom_hline(yintercept = c(1),linetype=2)+
+  geom_vline(xintercept=c(0),linetype=2)+
+  ylab('Asymmetric Reward/Hard Max Reward')+
+  xlab('Reward Slope')+
+  theme(
+      axis.text.x = element_text(size=12,color='black'),
+      axis.text.y = element_text(size=12,color='black'),
+      axis.ticks = element_blank(),
+      axis.title = element_text(size=16,color='black'),
+      strip.background = element_blank(),
+      strip.text = element_text(size=18,color='black',face='italic'),
+      axis.line.x = element_line(size=.5),
+      axis.line.y = element_line(size=.5),
+      panel.background = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+ggsave('/Users/alsfilip/Desktop/klab/bestSlope.pdf',bestSlope,height=4,width = 7)
+
 ```
 
 
