@@ -567,5 +567,90 @@ wilcox.test(cond_block_conf.p.wide$Block_Diff[cond_block_conf.p.wide$Condition =
 
 ```
 
+Simulations based on what subjects saw
+```{r}
+hazardEstimator2 = function(beads,pspace,hspace,haz=F){
+    prior = array(NA, c(length(pspace),length(hspace),length(beads)))
+    posterior = array(NA, c(length(pspace),length(hspace),length(beads)))
+    
+    for(i in 1:length(beads)){
+        #Get prior
+        if(i == 1){
+            prior[,,i] = 1/(length(pspace)*length(hspace))
+        }
+        else{
+            #update prior based on hazards being considered
+            prior[,,i] = posterior[,,i-1]
+            
+            for(h in 1:length(hspace)){
+                pO = prior[1,h,i]
+                pB = prior[2,h,i]
+                prior[1,h,i] = (1-hspace[h])*pO + hspace[h]*pB
+                prior[2,h,i] = (1-hspace[h])*pB + hspace[h]*pO
+            }
+        }
+        
+        #Update state estimations based on observed bead
+        if(beads[i] == 1){
+            lik = pspace
+        }
+        else{
+            lik = 1-pspace
+        }
+        posterior[,,i] = prior[,,i]
+        for(h in 1:length(hspace)){
+            posterior[,h,i] = prior[,h,i]*lik
+        }
+        posterior[,,i] = posterior[,,i]/sum(posterior[,,i])
+    }
+    
+    #Get data frame of responses and confidence values
+    prior_blue = sapply(1:length(beads),function(x) rowSums(prior[,,x]))[2,]
+    posterior_blue = sapply(1:length(beads),function(x) rowSums(posterior[,,x]))[2,]
+    prior_hi = sapply(1:length(beads),function(x) colSums(prior[,,x]))[2,]
+    posterior_hi = sapply(1:length(beads),function(x) colSums(posterior[,,x]))[2,]
+    df = data.frame(Trials = 1:length(beads),
+                    Estimator = rep('Hazard',length(beads)),
+                    Hazard = rep(haz,length(beads)),
+                    Beads = beads,
+                    Prior_Urn = prior_blue,
+                    Posterior_Urn = posterior_blue,
+                    Prior_Hazard = prior_hi,
+                    Posterior_Hazard = posterior_hi,
+                    Correct_Hazard = ifelse(rep(haz,length(beads))==hspace[2],posterior_hi,1-posterior_hi))
+    return(list(Prior = prior,Posterior = posterior,Responses = df))
+}
+```
+
+```{r}
+subjects = unique(sub_dat$SubjectID)
+for(i in 1:length(subjects)){
+  print(subjects[i])
+  bt = unique(sub_dat$BlockType)
+  for(i2 in 1:length(bt)){
+    print(bt[i2])
+    trialBlocks = unique(sdat$TrialBlock)
+    for(i3 in 1:length(trialBlocks)){
+      tdat = subset(sub_dat,SubjectID == subjects[i] & BlockType == bt[i2] & TrialBlock == trialBlocks[i3])
+      beads = tdat$Bead
+      beads = as.numeric(beads == 'blue')
+      gen = tdat$CurrGen
+      if(bt[i2] == 'urn'){
+        gen = as.numeric(gen == 'blue')
+        sim = stateEstimator(beads,gen,c(.2,.8))
+        sub_dat$ModelConf[sub_dat$SubjectID == subjects[i] & sub_dat$BlockType == bt[i2] &sub_dat$TrialBlock == trialBlocks[i3]] = (sim$Correct_Urn-.5)/.5
+      }
+      else if(bt[i2] == 'hazard'){
+        gen = as.numeric(gen == 'high')
+        haz = ifelse(gen[1] == 'high',.8,.2)
+        sim = hazardEstimator2(beads,c(.0001,.9999),c(.2,.8),haz)$Responses
+        sub_dat$ModelConf[sub_dat$SubjectID == subjects[i] & sub_dat$BlockType == bt[i2] & sub_dat$TrialBlock == trialBlocks[i3]] = (sim$Correct_Hazard-.5)/.5
+      }
+    }
+  }
+}
+```
+
+
 
 
